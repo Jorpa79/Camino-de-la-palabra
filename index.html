@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta charset="utf-8">
+  <meta name="theme-color" content="#173d35">
+  <meta name="description" content="Ruta católica personal para estudiar la Sagrada Escritura.">
+  <title>Camino de la Palabra</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Ir al contenido</a>
+
+  <div id="appLoader" class="loader-screen" role="status" aria-live="polite">
+    <div class="loader-mark" aria-hidden="true"><span></span></div>
+    <p>Preparando tu estudio…</p>
+  </div>
+
+  <section id="authScreen" class="auth-screen hidden" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <div class="auth-mark" aria-hidden="true">✝</div>
+      <p class="eyebrow">Estudio bíblico católico</p>
+      <h1 id="authTitle">Camino de la Palabra</h1>
+      <p class="auth-intro">Tu avance, diario y repasos se guardan de forma privada en tu cuenta y se sincronizan entre tus dispositivos.</p>
+      <div id="loginPanel">
+        <form id="loginForm" class="auth-form">
+          <label>Correo electrónico<input id="loginEmail" type="email" autocomplete="username" required maxlength="180" placeholder="tu@correo.com"></label>
+          <label>Contraseña<input id="loginPassword" type="password" autocomplete="current-password" required minlength="8" maxlength="128" placeholder="Tu contraseña"></label>
+          <button class="primary-button auth-submit" type="submit">Iniciar sesión</button>
+        </form>
+        <p class="auth-switch">¿Aún no tienes cuenta? <button id="showRegister" class="link-button" type="button">Crear cuenta</button></p>
+      </div>
+      <div id="registerPanel" class="hidden">
+        <form id="registerForm" class="auth-form">
+          <label>Nombre<input id="registerName" type="text" autocomplete="name" required minlength="2" maxlength="80" placeholder="Tu nombre"></label>
+          <label>Correo electrónico<input id="registerEmail" type="email" autocomplete="email" required maxlength="180" placeholder="tu@correo.com"></label>
+          <label>Contraseña<input id="registerPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128" placeholder="Mínimo 8 caracteres"></label>
+          <button class="primary-button auth-submit" type="submit">Crear mi cuenta</button>
+        </form>
+        <p class="auth-switch">¿Ya tienes cuenta? <button id="showLogin" class="link-button" type="button">Iniciar sesión</button></p>
+      </div>
+      <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+      <small class="auth-privacy">Cada cuenta mantiene separados sus avances, notas y preferencias.</small>
+    </div>
+  </section>
+
+  <div class="app-shell hidden">
+    <header class="topbar">
+      <button class="brand" data-nav="dashboard" aria-label="Ir al inicio">
+        <span class="brand-mark" aria-hidden="true"><span class="brand-cross"></span></span>
+        <span class="brand-copy">
+          <strong>Camino de la Palabra</strong>
+          <small>Conocer · meditar · vivir</small>
+        </span>
+      </button>
+      <nav class="top-navigation" aria-label="Navegación principal">
+        <button class="nav-item active" data-nav="dashboard">Inicio</button>
+        <button class="nav-item" data-nav="route">Ruta</button>
+        <button class="nav-item" data-nav="library">Biblia</button>
+        <button class="nav-item" data-nav="reviews">Repasos <span id="reviewNavBadge" class="nav-badge hidden">0</span></button>
+      </nav>
+      <div class="topbar-actions">
+        <span id="syncStatus" class="sync-pill" title="Estado de guardado"><span class="sync-dot"></span><span class="sync-label">Preparando</span></span>
+        <span id="currentUserName" class="current-user-name"></span>
+        <button id="logoutButton" class="reader-action" type="button" title="Cerrar sesión">Salir</button>
+        <button id="openSettings" class="icon-button" type="button" aria-label="Abrir configuración" title="Configuración">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Zm8-3.5c0-.5 0-1-.1-1.4l2-1.5-2-3.4-2.4 1a8 8 0 0 0-2.4-1.4L14.8 2h-4l-.4 3.3A8 8 0 0 0 8 6.7l-2.4-1-2 3.4 2 1.5a8 8 0 0 0 0 2.8l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 2.4 1.4l.4 3.3h4l.4-3.3a8 8 0 0 0 2.4-1.4l2.4 1 2-3.4-2-1.5c0-.5.1-.9.1-1.4Z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="mainContent" class="main-content" tabindex="-1">
+      <section id="view-dashboard" class="app-view active" aria-labelledby="dashboardTitle">
+        <div class="welcome-row">
+          <div>
+            <p id="todayLabel" class="eyebrow">Tu estudio de hoy</p>
+            <h1 id="dashboardTitle">Paz y bien</h1>
+            <p class="lead">Avanza con constancia, comprendiendo el texto dentro de la fe de la Iglesia.</p>
+          </div>
+          <div class="streak-card" aria-label="Racha de estudio">
+            <span class="streak-flame">✦</span>
+            <strong id="streakValue">0</strong>
+            <small>días de racha</small>
+          </div>
+        </div>
+
+        <article id="continueCard" class="continue-card">
+          <div class="continue-art" aria-hidden="true">
+            <span class="sun"></span><span class="mountain mountain-a"></span><span class="mountain mountain-b"></span>
+          </div>
+          <div class="continue-content">
+            <div class="card-meta"><span id="continueDay" class="gold-chip">Día 1 de 365</span><span id="continueEstimate">15–45 min</span></div>
+            <h2 id="continueTitle">Creación, dignidad humana y caída</h2>
+            <p id="continueReference">Génesis 1–3</p>
+            <div class="continue-actions">
+              <button id="continueButton" class="primary-button" type="button">Comenzar estudio <span>→</span></button>
+              <button id="quickButton" class="text-button" type="button">Usar modo rápido</button>
+            </div>
+          </div>
+        </article>
+
+        <div class="metrics-grid">
+          <article class="metric-card">
+            <div class="metric-icon green">✓</div><div><span class="metric-label">Avance anual</span><strong id="progressPercent">0%</strong><small id="progressDetail">0 de 365 sesiones</small></div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon amber">↻</div><div><span class="metric-label">Repasos pendientes</span><strong id="dueReviews">0</strong><small>según tu aprendizaje</small></div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon blue">◷</div><div><span class="metric-label">Tiempo estudiado</span><strong id="totalMinutes">0 min</strong><small>sincronizado</small></div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel route-preview-panel">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Ruta anual · 73 libros</span><h2>De Génesis a Apocalipsis</h2></div>
+              <button class="link-button" data-nav="route">Ver las 365 sesiones</button>
+            </div>
+            <div id="routePreview" class="route-preview"></div>
+          </article>
+
+          <article class="panel orientation-panel">
+            <div class="orientation-icon" aria-hidden="true">✧</div>
+            <span class="eyebrow">Fundamento católico</span>
+            <h2>Antes de comenzar</h2>
+            <p>Aprende a leer cada pasaje atendiendo al género literario, el contexto y la unidad de toda la Escritura.</p>
+            <button id="openOrientation" class="secondary-button" type="button">Abrir guía inicial</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-route" class="app-view" aria-labelledby="routeTitle">
+        <div class="page-heading">
+          <div><p class="eyebrow">Ruta anual · Biblia católica</p><h1 id="routeTitle">365 días de Génesis a Apocalipsis</h1><p>Modo completo progresivo de 15–45 minutos o lectura esencial de 10–15 minutos.</p></div>
+          <div id="routeProgressRing" class="progress-ring" aria-label="Progreso de la ruta"><span>0%</span></div>
+        </div>
+        <div class="legend-row"><span><i class="legend-dot complete"></i> Completado</span><span><i class="legend-dot current"></i> Siguiente</span><span><i class="legend-dot pending"></i> Pendiente</span></div>
+        <div id="routeList" class="route-list"></div>
+      </section>
+
+      <section id="view-library" class="app-view" aria-labelledby="libraryTitle">
+        <div class="page-heading library-heading">
+          <div><p class="eyebrow">Biblia de estudio · 73 libros</p><h1 id="libraryTitle">Biblia católica completa</h1><p id="libraryDescription">Selecciona un libro para consultar sus capítulos y notas esenciales.</p></div>
+          <label class="search-box"><span aria-hidden="true">⌕</span><input id="librarySearch" type="search" placeholder="Buscar en el libro seleccionado" autocomplete="off"></label>
+        </div>
+        <div class="library-selectors" aria-label="Selección de libro bíblico">
+          <label><span>Testamento</span><select id="testamentSelect"><option value="all">Toda la Biblia</option><option value="Antiguo Testamento">Antiguo Testamento</option><option value="Nuevo Testamento">Nuevo Testamento</option></select></label>
+          <label><span>Libro</span><select id="bookSelect"></select></label>
+          <div id="selectedBookMeta" class="selected-book-meta"></div>
+        </div>
+        <div id="searchResults" class="search-results hidden"></div>
+        <div id="chapterGrid" class="chapter-grid"></div>
+      </section>
+
+      <section id="view-reviews" class="app-view" aria-labelledby="reviewsTitle">
+        <div class="page-heading">
+          <div><p class="eyebrow">Memoria y comprensión</p><h1 id="reviewsTitle">Repasos programados</h1><p>Las preguntas regresan en 1, 3, 7, 14 y 30 días según tus respuestas.</p></div>
+        </div>
+        <div id="reviewSummary" class="review-summary"></div>
+        <div id="reviewList" class="review-list"></div>
+      </section>
+
+      <section id="view-study" class="app-view study-view" aria-labelledby="studyTitle">
+        <button id="backFromStudy" class="back-button" type="button">← Volver</button>
+        <div class="study-heading">
+          <div>
+            <div class="card-meta"><span id="studyDay" class="gold-chip">Día 1</span><span id="studyModeLabel">Modo completo</span></div>
+            <h1 id="studyTitle">Creación, dignidad humana y caída</h1>
+            <p id="studyReference">Génesis 1–3</p>
+          </div>
+          <button id="askChatGpt" class="ai-button" type="button"><span class="ai-spark">✦</span> Preguntar al tutor</button>
+        </div>
+
+        <div class="study-tabs" role="tablist" aria-label="Secciones de la lección">
+          <button class="study-tab active" data-tab="reading" role="tab">Lectura</button>
+          <button class="study-tab" data-tab="understand" role="tab">Comprender</button>
+          <button class="study-tab" data-tab="faith" role="tab">Fe y vida</button>
+          <button class="study-tab" data-tab="quiz" role="tab">Preguntas</button>
+        </div>
+
+        <div class="study-layout">
+          <div class="study-main">
+            <section id="tab-reading" class="tab-panel active" role="tabpanel">
+              <div class="reading-toolbar">
+                <div>
+                  <span class="toolbar-label">Lectura del día</span>
+                  <strong id="readingRange">Génesis 1–3</strong>
+                </div>
+                <div class="audio-panel">
+                  <div class="audio-controls" aria-label="Controles de audio">
+                    <button id="audioToggle" class="round-button" type="button" aria-label="Reproducir lectura" aria-pressed="false">▶</button>
+                    <button id="audioStop" class="round-button subtle" type="button" aria-label="Detener audio">■</button>
+                    <button id="readerModeButton" class="reader-action" type="button" aria-pressed="false">Pantalla de lectura</button>
+                    <button id="fontDecrease" class="reader-action font-action" type="button" aria-label="Reducir letra">A−</button>
+                    <button id="fontIncrease" class="reader-action font-action" type="button" aria-label="Aumentar letra">A+</button>
+                    <span id="audioVoiceBadge" class="audio-voice-badge">Voz del dispositivo</span>
+                    <label>Voz <select id="audioProvider"><option value="gemini">Gemini TTS</option><option value="openai">OpenAI Cedar</option><option value="device">Dispositivo (gratis)</option></select></label>
+                    <label>Velocidad <select id="speechRate"><option value="0.8">0.8×</option><option value="1" selected>1×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option></select></label>
+                  </div>
+                  <span id="audioStatus" class="audio-status" aria-live="polite">Introducción espiritual incluida</span>
+                </div>
+              </div>
+              <div id="readingChapters" class="scripture-reader"></div>
+              <p class="source-note">Los asteriscos pertenecen a la edición y remiten a sus notas de estudio. El audio omite los números de versículo. Gemini TTS y OpenAI Cedar son voces generadas por IA; también puedes usar la voz gratuita de tu dispositivo. Texto para uso personal privado.</p>
+            </section>
+
+            <section id="tab-understand" class="tab-panel" role="tabpanel">
+              <article class="content-card"><span class="eyebrow">Objetivo</span><h2>Qué aprenderás</h2><p id="lessonObjective"></p></article>
+              <article class="content-card"><span class="eyebrow">Contexto</span><h2>Para leer con atención</h2><p id="lessonContext"></p></article>
+              <article class="content-card"><span class="eyebrow">Ideas clave</span><h2>Claves de comprensión</h2><ul id="lessonIdeas" class="key-list"></ul></article>
+              <article class="content-card notes-card"><div class="panel-heading"><div><span class="eyebrow">Biblia de Jerusalén</span><h2>Notas de estudio</h2></div><button id="toggleAllNotes" class="link-button" type="button">Mostrar todas</button></div><div id="chapterNotes" class="chapter-notes"></div></article>
+            </section>
+
+            <section id="tab-faith" class="tab-panel" role="tabpanel">
+              <article class="content-card catechism-card"><span class="eyebrow">Catecismo de la Iglesia Católica</span><h2>Conexiones doctrinales</h2><div id="catechismLinks" class="catechism-links"></div></article>
+              <div class="lectio-grid">
+                <article class="lectio-card"><span>1</span><h3>Medita</h3><p id="lessonMeditate"></p></article>
+                <article class="lectio-card"><span>2</span><h3>Ora</h3><p id="lessonPrayer"></p></article>
+                <article class="lectio-card"><span>3</span><h3>Vive</h3><p id="lessonAction"></p></article>
+              </div>
+              <article class="content-card journal-card"><label for="journalInput"><span class="eyebrow">Diario espiritual privado</span><h2>¿Qué palabra te llevas hoy?</h2></label><textarea id="journalInput" rows="6" placeholder="Escribe tu reflexión, una duda o una oración…"></textarea><div class="journal-footer"><span id="journalStatus">Se guarda automáticamente</span><button id="saveJournalButton" class="secondary-button" type="button">Guardar nota</button></div></article>
+            </section>
+
+            <section id="tab-quiz" class="tab-panel" role="tabpanel">
+              <div class="quiz-intro"><span class="eyebrow">Comprueba tu comprensión</span><h2>Tres preguntas para afianzar lo aprendido</h2><p>No hay límite de intentos. Los temas difíciles pasarán a tus repasos programados.</p></div>
+              <form id="quizForm" class="quiz-form"></form>
+              <div id="quizResult" class="quiz-result hidden" aria-live="polite"></div>
+            </section>
+          </div>
+
+          <aside class="study-side">
+            <div class="side-card">
+              <span class="eyebrow">Tu modo de hoy</span>
+              <div class="mode-switch" role="group" aria-label="Modo de estudio">
+                <button id="modeFull" class="active" type="button">Completo</button><button id="modeQuick" type="button">Rápido</button>
+              </div>
+              <p id="modeDescription">Lectura completa, contexto, Catecismo y preguntas.</p>
+            </div>
+            <div class="side-card">
+              <span class="eyebrow">Progreso de la sesión</span>
+              <div class="session-progress"><div id="sessionProgressBar"></div></div>
+              <strong id="sessionProgressText">0% revisado</strong>
+            </div>
+            <button id="completeLesson" class="primary-button full-width" type="button">Marcar sesión completa</button>
+            <p id="completeHint" class="side-hint">Responde las preguntas para calcular tu comprensión.</p>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <button id="exitReaderMode" class="reader-exit" type="button" aria-label="Salir del modo lectura">Salir de lectura ✕</button>
+  <script src="config.js"></script>
+  <script src="bible-data.js"></script>
+  <script src="study-plan.js"></script>
+  <script src="app.js"></script>
+  <dialog id="settingsDialog" class="app-dialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-heading"><div><span class="eyebrow">Preferencias</span><h2>Configuración</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <label class="setting-row"><span><strong>Tamaño del texto bíblico</strong><small>Ajusta la lectura a tu pantalla.</small></span><input id="fontScale" type="range" min="0.9" max="1.8" step="0.05" value="1"></label>
+      <label class="setting-row"><span><strong>Modo predeterminado</strong><small>Podrás cambiarlo en cada sesión.</small></span><select id="defaultMode"><option value="full">Completo</option><option value="quick">Rápido</option></select></label>
+      <label class="setting-row"><span><strong>Apariencia</strong><small>Elige el contraste que te resulte cómodo.</small></span><select id="themeSelect"><option value="light">Claro</option><option value="dark">Oscuro</option></select></label>
+      <button id="saveSettingsButton" class="primary-button full-width" value="default" type="button">Guardar preferencias</button>
+    </form>
+  </dialog>
+
+  <dialog id="orientationDialog" class="app-dialog wide-dialog">
+    <div class="dialog-card">
+      <div class="dialog-heading"><div><span class="eyebrow">Guía inicial</span><h2>Leer la Biblia con la Iglesia</h2></div><button class="close-button" data-close-dialog="orientationDialog" aria-label="Cerrar">×</button></div>
+      <div id="orientationContent" class="orientation-content"></div>
+      <div class="official-links"><a href="https://www.vatican.va/archive/catechism_sp/index_sp.html" target="_blank" rel="noopener">Catecismo oficial ↗</a><a href="https://www.vatican.va/archive/hist_councils/ii_vatican_council/documents/vat-ii_const_19651118_dei-verbum_sp.html" target="_blank" rel="noopener">Dei Verbum ↗</a></div>
+    </div>
+  </dialog>
+
+  <dialog id="aiDialog" class="app-dialog">
+    <div class="dialog-card">
+      <div class="dialog-heading"><div><span class="eyebrow">Tutor bíblico</span><h2>Preparar consulta para ChatGPT</h2></div><button class="close-button" data-close-dialog="aiDialog" aria-label="Cerrar">×</button></div>
+      <p>La consulta incluirá el pasaje, el objetivo de la sesión y reglas para responder desde un enfoque católico con referencias.</p>
+      <label for="aiQuestion" class="field-label">¿Qué deseas comprender?</label>
+      <textarea id="aiQuestion" rows="5" placeholder="Ejemplo: ¿Cómo debo entender que el ser humano fue creado a imagen de Dios?"></textarea>
+      <div class="prompt-preview"><span>La consulta se copiará para que puedas pegarla si el navegador no la coloca automáticamente.</span></div>
+      <button id="launchChatGpt" class="ai-button full-width" type="button"><span class="ai-spark">✦</span> Copiar y abrir ChatGPT</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+
+
+</body>
+</html>
