@@ -17,6 +17,7 @@
     studyMode: 'full',
     fontScale: '1',
     audioProvider: '',
+    audioVoice: 'female',
     speechRate: '1',
     theme: 'light',
     lastLessonId: 'day-001',
@@ -187,6 +188,7 @@
     $('#audioStop').addEventListener('click', stopAudio);
     $('#speechRate').addEventListener('change', onSpeechRateChange);
     $('#audioProvider').addEventListener('change', onAudioProviderChange);
+    $('#audioVoice').addEventListener('change', onAudioVoiceChange);
     $('#readerModeButton').addEventListener('click', enterReadingMode);
     $('#exitReaderMode').addEventListener('click', exitReadingMode);
     $('#fontDecrease').addEventListener('click', () => adjustReaderFont(-0.05));
@@ -848,7 +850,8 @@
     document.documentElement.style.setProperty('--scripture-scale', appState.settings.fontScale || '1');
     document.documentElement.dataset.theme = appState.settings.theme || 'light';
     $('#speechRate').value = appState.settings.speechRate || '1';
-    $('#audioProvider').value = appState.settings.audioProvider || audioConfig.defaultProvider || 'gemini';
+    $('#audioProvider').value = appState.settings.audioProvider || audioConfig.defaultProvider || 'device';
+    $('#audioVoice').value = appState.settings.audioVoice || 'female';
     renderAudioAvailability();
   }
 
@@ -858,6 +861,13 @@
     try { if (backendReady) await gasCall('saveSettings', {audioProvider:event.target.value}); } catch(error) { console.warn(error); }
     renderAudioAvailability();
     if (speechPlaying || speechLoading) { stopAudio(); showToast('Proveedor de voz actualizado. Pulsa reproducir para continuar.'); }
+  }
+
+  async function onAudioVoiceChange(event) {
+    appState.settings.audioVoice = event.target.value;
+    persistLocal();
+    try { if (backendReady) await gasCall('saveSettings', {audioVoice:event.target.value}); } catch(error) { console.warn(error); }
+    if (speechPlaying || speechLoading) { stopAudio(); showToast('Voz actualizada. Pulsa reproducir para continuar.'); }
   }
 
   async function onSpeechRateChange(event) {
@@ -959,7 +969,7 @@
         console.error(error);
       }
       speechPaused = false;
-      setAudioUi('playing', audioMode === 'neural' ? ((appState.settings.audioProvider === 'gemini') ? 'Gemini · voz generada por IA' : 'Cedar · voz generada por IA') : 'Voz del dispositivo');
+      setAudioUi('playing', audioMode === 'neural' ? ((appState.settings.audioProvider === 'gemini') ? 'Gemini · voz generada por IA' : 'OpenAI · voz generada por IA') : 'Voz del dispositivo');
       return;
     }
     await startAudio();
@@ -1030,7 +1040,8 @@
       const result = await gasCall('generateSpeech', {
         text: speechQueue[speechIndex],
         rate: Number($('#speechRate').value) || 1,
-        provider: appState.settings.audioProvider || audioConfig.defaultProvider || 'gemini'
+        provider: appState.settings.audioProvider || audioConfig.defaultProvider || 'device',
+        voice: appState.settings.audioVoice || 'female'
       });
       if (sessionId !== audioSessionId || !speechPlaying) return;
       if (!result || !result.audioBase64) throw new Error('El servicio no devolvió audio.');
@@ -1048,7 +1059,7 @@
         playNextNeuralChunk(sessionId);
       };
       speechLoading = false;
-      setAudioUi('playing', isIntroduction ? `Introducción espiritual · ${result.provider === 'gemini' ? 'Gemini' : 'Cedar'}` : `${result.provider === 'gemini' ? 'Gemini' : 'Cedar'} · audio ${speechIndex + 1} de ${speechQueue.length}`);
+      setAudioUi('playing', isIntroduction ? `Introducción espiritual · ${result.provider === 'gemini' ? 'Gemini' : 'OpenAI'}` : `${result.provider === 'gemini' ? 'Gemini' : 'OpenAI'} · audio ${speechIndex + 1} de ${speechQueue.length}`);
       source.start(0);
     } catch (error) {
       if (sessionId !== audioSessionId) return;
@@ -1098,7 +1109,7 @@
     }
     if (!('speechSynthesis' in window)) {
       stopAudio();
-      showToast('Cedar no está disponible y este navegador no ofrece una voz de respaldo.');
+      showToast('El servicio de voz IA no está disponible y este navegador no ofrece una voz de respaldo.');
       return;
     }
     const remainingText = speechQueue.slice(speechIndex).join(' ');
@@ -1107,7 +1118,7 @@
     audioMode = 'device';
     speechPaused = false;
     setAudioUi('playing', 'Voz del dispositivo · respaldo automático');
-    showToast('Cedar no está disponible ahora. Continuamos con la voz del dispositivo.');
+    showToast('El servicio de voz IA no está disponible. Continuamos con la voz del dispositivo.');
     speakNextLocal(sessionId);
   }
 
@@ -1165,17 +1176,17 @@
   function renderAudioAvailability() {
     const badge = $('#audioVoiceBadge');
     if (!badge) return;
-    const provider = appState.settings.audioProvider || audioConfig.defaultProvider || 'gemini';
+    const provider = appState.settings.audioProvider || audioConfig.defaultProvider || 'device';
     const configured = provider !== 'device' && backendReady && Boolean(audioConfig.providers && audioConfig.providers[provider]);
-    badge.textContent = configured ? (provider === 'gemini' ? 'Gemini · voz IA' : 'Cedar · voz IA') : 'Voz del dispositivo';
+    badge.textContent = configured ? (provider === 'gemini' ? `Gemini · ${appState.settings.audioVoice === 'male' ? 'Algieba' : 'Aoede'}` : 'OpenAI · voz IA') : 'Voz del dispositivo';
     badge.classList.toggle('neural', configured);
     if (!speechPlaying && !speechLoading) setAudioUi('idle', getAudioIdleLabel());
   }
 
   function getAudioIdleLabel() {
-    const provider = appState.settings.audioProvider || audioConfig.defaultProvider || 'gemini';
+    const provider = appState.settings.audioProvider || audioConfig.defaultProvider || 'device';
     const configured = provider !== 'device' && backendReady && Boolean(audioConfig.providers && audioConfig.providers[provider]);
-    return configured ? `Introducción espiritual incluida · ${provider === 'gemini' ? 'Gemini' : 'Cedar'}` : 'Introducción espiritual incluida · voz del dispositivo';
+    return configured ? `Introducción espiritual incluida · ${provider === 'gemini' ? 'Gemini' : 'OpenAI'}` : 'Introducción espiritual incluida · voz del dispositivo';
   }
 
   function setAudioUi(state, detail) {
