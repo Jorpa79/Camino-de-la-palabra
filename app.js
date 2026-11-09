@@ -33,7 +33,7 @@
     model: '',
     aiGenerated: false
   });
-  const NEURAL_AUDIO_CHUNK_LIMIT = 2800;
+  const NEURAL_AUDIO_CHUNK_LIMIT = 700;
   const DEVICE_AUDIO_CHUNK_LIMIT = 230;
 
   let appState = {progress: {}, journal: {}, reviews: [], settings: {...DEFAULT_SETTINGS}};
@@ -984,7 +984,8 @@
       for(let bead=1;bead<=10;bead++) add('Ave María '+bead+' de 10',prayers.ave,
           'Misterio '+n+'. Después de rezarla, pulsa «Siguiente».',which);
       add('Gloria · misterio '+n,prayers.gloria,'Al terminar las diez Ave Marías.',which);
-      add('Oración de Fátima · misterio '+n,prayers.fatima,'Oración tradicional opcional después del Gloria.',which);
+      add('María, Madre de gracia · misterio '+n,prayers.mariaGracia,'Reza esta oración mariana después del Gloria.',which);
+      add('Oración de Fátima · misterio '+n,prayers.fatima,'Continúa con la oración de Fátima.',which);
     });
     add('Salve a la Virgen María',prayers.salve,'Hemos meditado los cinco misterios.','Conclusión');
     add('Oración final del Rosario',prayers.oracionFinal,'Oremos juntos para concluir.','Conclusión');
@@ -1413,7 +1414,9 @@
     audioMode = 'device';
     speechPaused = false;
     setAudioUi('playing', 'Voz del dispositivo · respaldo automático');
-    showToast('Gemini TTS falló: ' + (error && error.message ? error.message : 'error desconocido') + '. Continuamos con la voz del dispositivo.');
+    const detail = error && error.message ? error.message : 'error desconocido';
+    showToast((/SAFETY/i.test(detail) ? 'Gemini bloqueó este fragmento. ' : 'Gemini TTS falló. ') +
+      detail + ' Continuamos con la voz del dispositivo.');
     speakNextLocal(sessionId);
   }
 
