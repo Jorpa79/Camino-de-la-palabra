@@ -19,6 +19,8 @@
     audioProvider: '',
     audioVoice: 'female',
     speechRate: '1',
+    rosaryIntention: '',
+    rosaryMysteryType: '',
     theme: 'light',
     lastLessonId: 'day-001',
     selectedBookId: 'genesis'
@@ -56,6 +58,10 @@
   let audioContext = null;
   let audioSource = null;
   let audioSessionId = 0;
+  let rosaryMysteryIndex = 0;
+  let rosaryBeadProgress = new Set();
+  let rosaryAudio = null;
+  let rosaryAudioUrl = null;
 
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
@@ -189,6 +195,15 @@
     $('#speechRate').addEventListener('change', onSpeechRateChange);
     $('#audioProvider').addEventListener('change', onAudioProviderChange);
     $('#audioVoice').addEventListener('change', onAudioVoiceChange);
+    $('#testGeminiVoicesButton').addEventListener('click', testGeminiVoicesFromUi);
+    $('#rosaryMysterySelect').addEventListener('change', onRosaryMysteryChange);
+    $('#rosaryPrevMystery').addEventListener('click', () => moveRosaryMystery(-1));
+    $('#rosaryCompleteDecade').addEventListener('click', completeRosaryDecade);
+    $('#rosarySpeakButton').addEventListener('click', speakRosaryMeditation);
+    $('#rosaryBeads').addEventListener('click', onRosaryBeadClick);
+    $('#rosaryIntention').addEventListener('input', () => { appState.settings.rosaryIntention = $('#rosaryIntention').value; persistLocal(); $('#rosaryIntentionStatus').textContent = 'Cambios pendientes de guardar.'; });
+    $('#saveRosaryIntention').addEventListener('click', () => persistRosaryIntention());
+    $$('[data-rosary-prayer]').forEach(button => button.addEventListener('click', () => showRosaryPrayer(button.dataset.rosaryPrayer))); 
     $('#readerModeButton').addEventListener('click', enterReadingMode);
     $('#exitReaderMode').addEventListener('click', exitReadingMode);
     $('#fontDecrease').addEventListener('click', () => adjustReaderFont(-0.05));
@@ -323,10 +338,12 @@
     renderLibrary();
     renderReviews();
     updateReviewBadge();
+    renderRosary();
   }
 
   function showView(name) {
     if (name !== 'study') stopAudio();
+    if (name !== 'rosary') { stopRosaryAudio(); if (window.speechSynthesis) speechSynthesis.cancel(); }
     $$('.app-view').forEach(view => view.classList.toggle('active', view.id === 'view-' + name));
     $$('[data-nav]').forEach(button => button.classList.toggle('active', button.dataset.nav === name));
     if (name !== 'study') previousView = name;
@@ -335,6 +352,7 @@
     if (name === 'route') renderRoute();
     if (name === 'library') renderLibrary();
     if (name === 'reviews') renderReviews();
+    if (name === 'rosary') renderRosary();
     window.scrollTo({top: 0, behavior: 'smooth'});
     $('#mainContent').focus({preventScroll: true});
   }
@@ -846,6 +864,47 @@
     showToast('Preferencias guardadas.');
   }
 
+  async function testGeminiVoicesFromUi() {
+    const button = $('#testGeminiVoicesButton');
+    const status = $('#geminiTestStatus');
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Comprobando…';
+    status.textContent = 'Probando conexión y voces…';
+    status.className = 'audio-test-status';
+    try {
+      const result = await gasCall('testGeminiVoices', {});
+      const voices = result.voices || [];
+      const female = voices.find(item => item.id === 'female');
+      const male = voices.find(item => item.id === 'male');
+      audioConfig.providers = audioConfig.providers || {};
+      audioConfig.providers.gemini = Boolean(result.anyAvailable);
+      audioConfig.geminiTested = true;
+      audioConfig.geminiKeyPresent = Boolean(result.configured);
+      if (female) $('#audioVoice option[value="female"]').disabled = !female.available;
+      if (male) $('#audioVoice option[value="male"]').disabled = !male.available;
+      if (result.anyAvailable && (!appState.settings.audioProvider || appState.settings.audioProvider === 'device')) {
+        appState.settings.audioProvider = 'gemini';
+        $('#audioProvider').value = 'gemini';
+        persistLocal();
+        if (backendReady) gasCall('saveSettings', {audioProvider:'gemini'}).catch(console.warn);
+      }
+      const details = voices.map(item => `${item.name}: ${item.available ? 'disponible' : (item.error || 'no disponible')}`).join(' · ');
+      status.textContent = `${result.message || 'Prueba terminada'} ${details}`;
+      status.classList.toggle('success', Boolean(result.anyAvailable));
+      status.classList.toggle('error', !result.anyAvailable);
+      renderAudioAvailability();
+      showToast(result.anyAvailable ? 'Gemini TTS respondió correctamente.' : 'No se pudo confirmar la generación de voz. Revisa el diagnóstico.');
+    } catch (error) {
+      status.textContent = error.message || 'No se pudo probar Gemini.';
+      status.classList.add('error');
+      showToast('Error al comprobar Gemini: ' + (error.message || 'revisa la implementación.'));
+    } finally {
+      button.disabled = false;
+      button.textContent = original;
+    }
+  }
+
   function applySettings() {
     document.documentElement.style.setProperty('--scripture-scale', appState.settings.fontScale || '1');
     document.documentElement.dataset.theme = appState.settings.theme || 'light';
@@ -887,6 +946,153 @@
       try { await gasCall('saveSettings', {[key]: value}); }
       catch (error) { console.error(error); }
     }
+  }
+
+  function getRosaryTypeForToday() {
+    const day = new Date().getDay();
+    return day === 1 || day === 6 ? 'gozosos' : day === 4 ? 'luminosos' : day === 2 || day === 5 ? 'dolorosos' : 'gloriosos';
+  }
+  function getRosarySet() {
+    const data = window.ROSARY_DATA && window.ROSARY_DATA.mysteries;
+    const key = $('#rosaryMysterySelect').value || appState.settings.rosaryMysteryType || getRosaryTypeForToday();
+    return data && data[key] ? {key, ...data[key]} : null;
+  }
+  function renderRosary() {
+    if (!$('#rosaryMysterySelect')) return;
+    const preferred = appState.settings.rosaryMysteryType || getRosaryTypeForToday();
+    $('#rosaryMysterySelect').value = window.ROSARY_DATA.mysteries[preferred] ? preferred : getRosaryTypeForToday();
+    const set = getRosarySet();
+    if (!set) return;
+    $('#rosaryMysteryLabel').textContent = set.label;
+    $('#rosaryMysteryDescription').textContent = set.description;
+    $('#rosaryDayLabel').textContent = set.days;
+    $('#rosaryIntention').value = appState.settings.rosaryIntention || '';
+    renderRosaryMystery();
+  }
+  function renderRosaryMystery() {
+    const set = getRosarySet();
+    if (!set) return;
+    const item = set.items[rosaryMysteryIndex];
+    $('#rosaryMysteryNumber').textContent = ['Primer','Segundo','Tercer','Cuarto','Quinto'][rosaryMysteryIndex] + ' misterio';
+    $('#rosaryProgressLabel').textContent = `Misterio ${rosaryMysteryIndex + 1} de 5`;
+    $('#rosaryCurrentTitle').textContent = item.title;
+    $('#rosaryCurrentReference').textContent = item.reference;
+    $('#rosaryCurrentMeditation').textContent = item.meditation;
+    $('#rosaryCurrentFruit').textContent = item.fruit;
+    $('#rosaryBeadCount').textContent = `${rosaryBeadProgress.size} de 10`;
+    $('#rosaryBeads').innerHTML = Array.from({length:10}, (_,i) => `<button type="button" class="rosary-bead ${rosaryBeadProgress.has(i+1) ? 'done' : ''}" data-rosary-bead="${i+1}" aria-label="Ave María ${i+1}${rosaryBeadProgress.has(i+1) ? ', completada' : ''}" aria-pressed="${rosaryBeadProgress.has(i+1)}">${i+1}</button>`).join('');
+    $('#rosaryCompleteDecade').disabled = rosaryBeadProgress.size !== 10;
+    $('#rosaryPrevMystery').disabled = rosaryMysteryIndex === 0;
+    $('#rosaryPrayerStatus').textContent = rosaryBeadProgress.size === 10 ? 'Decena completa. Reza el Gloria y continúa al siguiente misterio.' : 'Comienza con el Padre Nuestro y después reza las diez Ave Marías.';
+  }
+  function onRosaryMysteryChange(event) {
+    appState.settings.rosaryMysteryType = event.target.value;
+    rosaryMysteryIndex = 0;
+    rosaryBeadProgress = new Set();
+    persistSetting('rosaryMysteryType', event.target.value);
+    renderRosary();
+  }
+  function onRosaryBeadClick(event) {
+    const button = event.target.closest('[data-rosary-bead]');
+    if (!button) return;
+    const number = Number(button.dataset.rosaryBead);
+    if (rosaryBeadProgress.has(number)) rosaryBeadProgress.delete(number); else rosaryBeadProgress.add(number);
+    renderRosaryMystery();
+  }
+  function moveRosaryMystery(direction) {
+    const next = Math.max(0, Math.min(4, rosaryMysteryIndex + direction));
+    if (next === rosaryMysteryIndex) return;
+    rosaryMysteryIndex = next;
+    rosaryBeadProgress = new Set();
+    renderRosaryMystery();
+  }
+  function completeRosaryDecade() {
+    if (rosaryBeadProgress.size !== 10) return;
+    if (rosaryMysteryIndex < 4) {
+      rosaryMysteryIndex += 1;
+      rosaryBeadProgress = new Set();
+      renderRosaryMystery();
+      showToast('Decena completada. Medita ahora el siguiente misterio.');
+    } else {
+      $('#rosaryPrayerStatus').textContent = 'Has recorrido los cinco misterios. Reza ahora la Salve y concluye con la señal de la cruz.';
+      showRosaryPrayer('salve');
+      showToast('Has completado los cinco misterios del Rosario.');
+    }
+  }
+  function showRosaryPrayer(key) {
+    const prayer = window.ROSARY_DATA.prayers[key];
+    if (!prayer) return;
+    const names = {credo:'Credo de los Apóstoles',padre:'Padre Nuestro',ave:'Ave María',gloria:'Gloria',fatima:'Oración de Fátima',salve:'Salve'};
+    $('#rosaryPrayerText').innerHTML = `<strong>${names[key] || 'Oración'}</strong><p>${escapeHtml(prayer)}</p>`;
+  }
+  async function persistRosaryIntention() {
+    const value = $('#rosaryIntention').value.trim();
+    appState.settings.rosaryIntention = value;
+    persistLocal();
+    try {
+      if (backendReady) await gasCall('saveSettings', {rosaryIntention:value});
+      $('#rosaryIntentionStatus').textContent = 'Intención guardada en tu cuenta.';
+      showToast('Tu intención del Rosario quedó guardada.');
+    } catch (error) {
+      $('#rosaryIntentionStatus').textContent = 'Guardada en este dispositivo; sincronización pendiente.';
+      showToast('No se pudo sincronizar la intención: ' + error.message);
+    }
+  }
+  async function speakRosaryMeditation() {
+    const button = $('#rosarySpeakButton');
+    if (rosaryAudio || (window.speechSynthesis && speechSynthesis.speaking)) {
+      stopRosaryAudio();
+      if (window.speechSynthesis) speechSynthesis.cancel();
+      button.disabled = false;
+      button.textContent = '▶ Escuchar meditación';
+      return;
+    }
+    const set = getRosarySet();
+    const item = set.items[rosaryMysteryIndex];
+    const text = `${item.title}. ${item.reference}. ${item.meditation}. Fruto del misterio: ${item.fruit}.`;
+    const provider = appState.settings.audioProvider || audioConfig.defaultProvider || 'device';
+    const providerReady = provider !== 'device' && backendReady && Boolean(audioConfig.providers && audioConfig.providers[provider]);
+    button.disabled = true;
+    button.textContent = 'Preparando voz…';
+    try {
+      if (providerReady) {
+        const result = await gasCall('generateSpeech', {text, rate:Number($('#speechRate').value)||1, provider, voice:appState.settings.audioVoice||'female'});
+        if (!result.audioBase64) throw new Error('Gemini no devolvió audio.');
+        stopRosaryAudio();
+        const bytes = Uint8Array.from(atob(result.audioBase64), c => c.charCodeAt(0));
+        rosaryAudioUrl = URL.createObjectURL(new Blob([bytes], {type:result.mimeType||'audio/wav'}));
+        rosaryAudio = new Audio(rosaryAudioUrl);
+        rosaryAudio.onended = () => {
+          stopRosaryAudio(); button.disabled = false; button.textContent = '▶ Escuchar meditación';
+        };
+        rosaryAudio.onerror = () => {
+          stopRosaryAudio(); button.disabled = false; button.textContent = '▶ Escuchar meditación';
+          showToast('No se pudo reproducir el audio generado.');
+        };
+        await rosaryAudio.play();
+        button.disabled = false;
+        button.textContent = '■ Detener meditación';
+      } else if ('speechSynthesis' in window) {
+        if (provider !== 'device') showToast(`${provider === 'gemini' ? 'Gemini' : 'OpenAI'} no está disponible; se usará la voz del dispositivo.`);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-MX';
+        utterance.rate = Number($('#speechRate').value)||1;
+        utterance.onend = () => { button.disabled = false; button.textContent = '▶ Escuchar meditación'; };
+        utterance.onerror = () => { button.disabled = false; button.textContent = '▶ Escuchar meditación'; };
+        speechSynthesis.cancel();
+        speechSynthesis.speak(utterance);
+        button.disabled = false;
+        button.textContent = '■ Detener meditación';
+      } else throw new Error('Este navegador no ofrece lectura de voz.');
+    } catch (error) {
+      showToast('No se pudo reproducir la meditación: ' + error.message);
+      button.disabled = false;
+      button.textContent = '▶ Escuchar meditación';
+    }
+  }
+  function stopRosaryAudio() {
+    if (rosaryAudio) { rosaryAudio.pause(); rosaryAudio.src = ''; rosaryAudio = null; }
+    if (rosaryAudioUrl) { URL.revokeObjectURL(rosaryAudioUrl); rosaryAudioUrl = null; }
   }
 
   function renderOrientation() {
@@ -979,6 +1185,9 @@
     stopAudio();
     const selectedProvider = appState.settings.audioProvider || audioConfig.defaultProvider || 'gemini';
     const providerAvailable = selectedProvider === 'device' ? false : Boolean(audioConfig.providers && audioConfig.providers[selectedProvider]);
+    if (selectedProvider === 'gemini' && !providerAvailable) {
+      showToast(backendReady ? 'Gemini no está disponible. Pulsa “Comprobar voces Gemini” para revisar la clave y el modelo.' : 'No hay conexión con Apps Script. Comprueba la implementación /exec.');
+    }
     const canUseNeuralAudio = providerAvailable && backendReady && Boolean(window.AudioContext || window.webkitAudioContext);
     audioMode = canUseNeuralAudio ? 'neural' : 'device';
     speechQueue = buildSpeechQueue(canUseNeuralAudio ? NEURAL_AUDIO_CHUNK_LIMIT : DEVICE_AUDIO_CHUNK_LIMIT);
@@ -1178,7 +1387,7 @@
     if (!badge) return;
     const provider = appState.settings.audioProvider || audioConfig.defaultProvider || 'device';
     const configured = provider !== 'device' && backendReady && Boolean(audioConfig.providers && audioConfig.providers[provider]);
-    badge.textContent = configured ? (provider === 'gemini' ? `Gemini · ${appState.settings.audioVoice === 'male' ? 'Algieba' : 'Aoede'}` : 'OpenAI · voz IA') : 'Voz del dispositivo';
+    badge.textContent = configured ? (provider === 'gemini' ? `Gemini · ${appState.settings.audioVoice === 'male' ? 'Algieba' : 'Aoede'}` : 'OpenAI · voz IA') : (provider === 'gemini' && backendReady ? (audioConfig.geminiTested ? 'Gemini no disponible' : 'Gemini sin verificar') : (provider === 'gemini' ? 'Conexión pendiente' : 'Voz del dispositivo'));
     badge.classList.toggle('neural', configured);
     if (!speechPlaying && !speechLoading) setAudioUi('idle', getAudioIdleLabel());
   }

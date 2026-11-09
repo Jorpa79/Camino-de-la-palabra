@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="theme-color" content="#173d35">
   <meta name="description" content="Ruta católica personal para estudiar la Sagrada Escritura.">
-  <title>Camino de la Palabra</title>
+  <title>Camino de la Palabra · V2.6</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -58,6 +58,8 @@
         <button class="nav-item" data-nav="route">Ruta</button>
         <button class="nav-item" data-nav="library">Biblia</button>
         <button class="nav-item" data-nav="reviews">Repasos <span id="reviewNavBadge" class="nav-badge hidden">0</span></button>
+        <button class="nav-item" data-nav="rosary">✝ Santo Rosario</button>
+        <button class="nav-item" data-nav="rosary">✝ Santo Rosario</button>
       </nav>
       <div class="topbar-actions">
         <span id="syncStatus" class="sync-pill" title="Estado de guardado"><span class="sync-dot"></span><span class="sync-label">Preparando</span></span>
@@ -161,6 +163,52 @@
         <div id="reviewList" class="review-list"></div>
       </section>
 
+      <section id="view-rosary" class="app-view rosary-view" aria-labelledby="rosaryTitle">
+        <div class="rosary-hero">
+          <div><p class="eyebrow">Oración contemplativa · Tradición católica</p><h1 id="rosaryTitle">Santo Rosario Meditado</h1><p class="lead">Con María, contempla los momentos centrales de la vida de Jesús. Lee, medita y ora sin prisa.</p></div>
+          <div class="rosary-hero-mark" aria-hidden="true">✝</div>
+        </div>
+        <div class="rosary-layout">
+          <article class="content-card rosary-guide-card">
+            <h2>Cómo rezar el Santo Rosario</h2>
+            <img class="rosary-guide-image" src="rosary-guide.svg" alt="Ilustración del Santo Rosario con cuentas, medalla y crucifijo" loading="lazy">
+            <ol class="rosary-steps">
+              <li><strong>Señal de la cruz.</strong> En el nombre del Padre, del Hijo y del Espíritu Santo. Amén.</li>
+              <li><strong>Credo.</strong> Reza el Credo de los Apóstoles.</li>
+              <li><strong>Inicio.</strong> Reza un Padre Nuestro, tres Ave Marías (por la fe, la esperanza y la caridad) y un Gloria.</li>
+              <li><strong>Anuncia el misterio.</strong> Lee la cita bíblica y guarda un momento de silencio para meditar.</li>
+              <li><strong>Cada decena.</strong> Reza un Padre Nuestro, diez Ave Marías y un Gloria. Puedes añadir la oración de Fátima.</li>
+              <li><strong>Repite.</strong> Recorre los cinco misterios correspondientes al día.</li>
+              <li><strong>Conclusión.</strong> Reza la Salve y termina con la señal de la cruz.</li>
+            </ol>
+            <p class="rosary-note">El Rosario es una oración meditativa: no se trata de terminar deprisa, sino de contemplar a Cristo con María.</p>
+          </article>
+          <div class="rosary-main-column">
+            <article class="content-card rosary-day-card">
+              <div class="panel-heading"><div><span class="eyebrow">Misterios del día</span><h2 id="rosaryMysteryLabel">Misterios Gozosos</h2><p id="rosaryMysteryDescription" class="muted-copy"></p></div><span id="rosaryDayLabel" class="gold-chip"></span></div>
+              <label class="rosary-select-label" for="rosaryMysterySelect">Selecciona el conjunto de misterios</label>
+              <select id="rosaryMysterySelect" class="rosary-mystery-select"><option value="gozosos">Gozosos · lunes y sábado</option><option value="luminosos">Luminosos · jueves</option><option value="dolorosos">Dolorosos · martes y viernes</option><option value="gloriosos">Gloriosos · miércoles y domingo</option></select>
+            </article>
+            <article class="content-card rosary-meditation-card">
+              <div class="rosary-meditation-top"><span id="rosaryMysteryNumber" class="gold-chip">Primer misterio</span><span id="rosaryProgressLabel" class="muted-copy">Decena 1 de 5</span></div>
+              <h2 id="rosaryCurrentTitle">La Anunciación del Señor</h2>
+              <p id="rosaryCurrentReference" class="rosary-reference">Lucas 1, 26–38</p>
+              <div class="rosary-meditation-text"><h3>Evangelio y meditación</h3><p id="rosaryCurrentMeditation"></p></div>
+              <div class="rosary-fruit"><strong>Fruto del misterio</strong><span id="rosaryCurrentFruit"></span></div>
+              <div class="rosary-decade-progress"><div class="panel-heading"><h3>Reza las diez Ave Marías</h3><span id="rosaryBeadCount">0 de 10</span></div><div id="rosaryBeads" class="rosary-beads" aria-label="Progreso de las diez Ave Marías"></div><p class="muted-copy">Después de cada Ave María, marca una cuenta. Al completar las diez, continúa con el Gloria y avanza al siguiente misterio.</p></div>
+              <div class="rosary-actions"><button id="rosaryPrevMystery" class="secondary-button" type="button">← Anterior</button><button id="rosarySpeakButton" class="secondary-button" type="button">▶ Escuchar meditación</button><button id="rosaryCompleteDecade" class="primary-button" type="button" disabled>Completar decena y avanzar</button></div>
+              <p id="rosaryPrayerStatus" class="rosary-prayer-status" aria-live="polite">Comienza con el Padre Nuestro y después reza las diez Ave Marías.</p>
+            </article>
+            <article class="content-card rosary-prayers-card">
+              <div class="panel-heading"><div><span class="eyebrow">Oraciones del Rosario</span><h2>Consulta las oraciones</h2></div></div>
+              <div class="rosary-prayer-buttons"><button type="button" data-rosary-prayer="credo">Credo</button><button type="button" data-rosary-prayer="padre">Padre Nuestro</button><button type="button" data-rosary-prayer="ave">Ave María</button><button type="button" data-rosary-prayer="gloria">Gloria</button><button type="button" data-rosary-prayer="fatima">Oración de Fátima</button><button type="button" data-rosary-prayer="salve">Salve</button></div>
+              <div id="rosaryPrayerText" class="rosary-prayer-text" aria-live="polite">Selecciona una oración para leerla completa.</div>
+            </article>
+            <article class="content-card rosary-intention-card"><label for="rosaryIntention"><span class="eyebrow">Ofrece tu oración</span><h2>Mi intención del Rosario</h2></label><textarea id="rosaryIntention" rows="3" maxlength="1000" placeholder="Señor, hoy quiero ofrecer este Rosario por…"></textarea><div class="journal-footer"><span id="rosaryIntentionStatus">Tu intención se guarda en tu cuenta.</span><button id="saveRosaryIntention" class="secondary-button" type="button">Guardar intención</button></div></article>
+          </div>
+        </div>
+      </section>
+
       <section id="view-study" class="app-view study-view" aria-labelledby="studyTitle">
         <button id="backFromStudy" class="back-button" type="button">← Volver</button>
         <div class="study-heading">
@@ -199,7 +247,7 @@
                     <label>Voz Gemini <select id="audioVoice"><option value="female">Femenina · Aoede</option><option value="male">Masculina · Algieba</option></select></label>
                     <label>Velocidad <select id="speechRate"><option value="0.8">0.8×</option><option value="1" selected>1×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option></select></label>
                   </div>
-                  <span id="audioStatus" class="audio-status" aria-live="polite">Introducción espiritual incluida</span>
+                  <div class="audio-status-row"><span id="audioStatus" class="audio-status" aria-live="polite">Introducción espiritual incluida</span><button id="testGeminiVoicesButton" class="reader-action" type="button">Comprobar voces Gemini</button><span id="geminiTestStatus" class="audio-test-status" role="status" aria-live="polite">Sin comprobar</span></div>
                 </div>
               </div>
               <div id="readingChapters" class="scripture-reader"></div>
@@ -256,6 +304,7 @@
   <script src="config.js"></script>
   <script src="bible-data.js"></script>
   <script src="study-plan.js"></script>
+  <script src="rosary-data.js"></script>
   <script src="app.js"></script>
   <dialog id="settingsDialog" class="app-dialog">
     <form method="dialog" class="dialog-card">
