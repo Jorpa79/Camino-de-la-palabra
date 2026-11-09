@@ -1022,7 +1022,7 @@
   function showRosaryPrayer(key) {
     const prayer = window.ROSARY_DATA.prayers[key];
     if (!prayer) return;
-    const names = {credo:'Credo de los Apóstoles',padre:'Padre Nuestro',ave:'Ave María',gloria:'Gloria',fatima:'Oración de Fátima',salve:'Salve'};
+    const names = {senal:'Señal de la Santa Cruz',contricion:'Acto de contrición',ofrecimiento:'Ofrecimiento del Rosario',credo:'Credo de los Apóstoles',padre:'Padre Nuestro',ave:'Ave María',gloria:'Gloria',fatima:'Oración de Fátima',salve:'Salve',oracionFinal:'Oración final'};
     $('#rosaryPrayerText').innerHTML = `<strong>${names[key] || 'Oración'}</strong><p>${escapeHtml(prayer)}</p>`;
   }
   async function persistRosaryIntention() {
@@ -1327,7 +1327,7 @@
     audioMode = 'device';
     speechPaused = false;
     setAudioUi('playing', 'Voz del dispositivo · respaldo automático');
-    showToast('El servicio de voz IA no está disponible. Continuamos con la voz del dispositivo.');
+    showToast('Gemini TTS falló: ' + (error && error.message ? error.message : 'error desconocido') + '. Continuamos con la voz del dispositivo.');
     speakNextLocal(sessionId);
   }
 
