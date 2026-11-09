@@ -871,19 +871,18 @@
     const original = button.textContent;
     button.disabled = true;
     button.textContent = 'Comprobando…';
-    status.textContent = 'Probando conexión y voces…';
+    status.textContent = 'Probando únicamente la voz seleccionada para cuidar tu cuota de Gemini…';
     status.className = 'audio-test-status';
     try {
-      const result = await gasCall('testGeminiVoices', {});
+      const selectedVoice = $('#audioVoice').value || 'female';
+      const result = await gasCall('testGeminiVoices', {voice:selectedVoice});
       const voices = result.voices || [];
-      const female = voices.find(item => item.id === 'female');
-      const male = voices.find(item => item.id === 'male');
+      const tested = voices[0];
       audioConfig.providers = audioConfig.providers || {};
       audioConfig.providers.gemini = Boolean(result.anyAvailable);
       audioConfig.geminiTested = true;
       audioConfig.geminiKeyPresent = Boolean(result.configured);
-      if (female) $('#audioVoice option[value="female"]').disabled = !female.available;
-      if (male) $('#audioVoice option[value="male"]').disabled = !male.available;
+      if (tested) $('#audioVoice option[value="' + tested.id + '"]').disabled = !tested.available;
       if (result.anyAvailable && (!appState.settings.audioProvider || appState.settings.audioProvider === 'device')) {
         appState.settings.audioProvider = 'gemini';
         $('#audioProvider').value = 'gemini';
@@ -895,7 +894,7 @@
       status.classList.toggle('success', Boolean(result.anyAvailable));
       status.classList.toggle('error', !result.anyAvailable);
       renderAudioAvailability();
-      showToast(result.anyAvailable ? 'Gemini TTS respondió correctamente.' : 'No se pudo confirmar la generación de voz. Revisa el diagnóstico.');
+      showToast(result.anyAvailable ? 'La voz seleccionada de Gemini respondió correctamente.' : 'La voz seleccionada no está disponible. Revisa el diagnóstico y la cuota.');
     } catch (error) {
       status.textContent = error.message || 'No se pudo probar Gemini.';
       status.classList.add('error');
@@ -1035,10 +1034,36 @@
       } else throw new Error('El navegador no admite reproducción de voz.');
     } catch(error){stopGuidedRosaryAudio();showToast('No se pudo reproducir: '+error.message);}
   }
+  function syncRosaryMysteryFromGuide() {
+    const step = guidedRosarySteps()[guidedRosaryStep];
+    if (!step || !step.mystery) return;
+    const match = String(step.mystery).match(/Misterio\s+(\d+)\s+de\s+5/i);
+    if (match) {
+      const nextIndex = Number(match[1]) - 1;
+      if (nextIndex !== rosaryMysteryIndex) {
+        rosaryMysteryIndex = nextIndex;
+        rosaryBeadProgress = new Set();
+        renderRosaryMystery();
+      }
+    }
+  }
   function setupGuidedRosary() {
-    $('#guidedRosaryBack').addEventListener('click',()=>{stopGuidedRosaryAudio();guidedRosaryStep--;renderGuidedRosary();});
-    $('#guidedRosaryNext').addEventListener('click',()=>{stopGuidedRosaryAudio();guidedRosaryStep++;renderGuidedRosary();});
-    $('#guidedRosaryRestart').addEventListener('click',()=>{stopGuidedRosaryAudio();guidedRosaryStep=0;renderGuidedRosary();});
+    $('#guidedRosaryBack').addEventListener('click',()=>{
+      stopGuidedRosaryAudio();
+      guidedRosaryStep=Math.max(0,guidedRosaryStep-1);
+      syncRosaryMysteryFromGuide();
+      renderGuidedRosary();
+    });
+    $('#guidedRosaryNext').addEventListener('click',()=>{
+      stopGuidedRosaryAudio();
+      guidedRosaryStep=Math.min(guidedRosarySteps().length-1,guidedRosaryStep+1);
+      syncRosaryMysteryFromGuide();
+      renderGuidedRosary();
+    });
+    $('#guidedRosaryRestart').addEventListener('click',()=>{
+      stopGuidedRosaryAudio();guidedRosaryStep=0;rosaryMysteryIndex=0;rosaryBeadProgress=new Set();
+      renderRosaryMystery();renderGuidedRosary();
+    });
     $('#guidedRosarySpeak').addEventListener('click',speakGuidedRosary);
   }
   function renderRosary() {
@@ -1095,16 +1120,22 @@
   }
   function completeRosaryDecade() {
     if (rosaryBeadProgress.size !== 10) return;
-    if (rosaryMysteryIndex < 4) {
-      rosaryMysteryIndex += 1;
-      rosaryBeadProgress = new Set();
-      renderRosaryMystery();
-      showToast('Decena completada. Medita ahora el siguiente misterio.');
-    } else {
-      $('#rosaryPrayerStatus').textContent = 'Has recorrido los cinco misterios. Reza ahora la Salve y concluye con la señal de la cruz.';
-      showRosaryPrayer('salve');
-      showToast('Has completado los cinco misterios del Rosario.');
+    // Al completar las diez Ave Marías, no saltar al misterio siguiente:
+    // guiar primero Gloria, María Madre de gracia y oración de Fátima.
+    const steps = guidedRosarySteps();
+    const targetTitle = 'Gloria · misterio ' + (rosaryMysteryIndex + 1);
+    const targetIndex = steps.findIndex(step => step.title === targetTitle);
+    if (targetIndex >= 0) {
+      stopGuidedRosaryAudio();
+      guidedRosaryStep = targetIndex;
+      renderGuidedRosary();
+      $('#guidedRosaryHeading').scrollIntoView({behavior:'smooth', block:'center'});
+      $('#rosaryPrayerStatus').textContent = 'Decena completa. Reza ahora el Gloria, la oración a María Madre de gracia y la oración de Fátima antes de avanzar al siguiente misterio.';
+      showToast('Decena completada. Continúa con el Gloria y las oraciones siguientes.');
+      return;
     }
+    $('#rosaryPrayerStatus').textContent = 'No se pudo localizar el paso siguiente de la guía. Abre nuevamente el Rosario guiado.';
+    showToast('Revisa la guía del Rosario para continuar.');
   }
   function showRosaryPrayer(key) {
     const prayer = window.ROSARY_DATA.prayers[key];
