@@ -165,7 +165,7 @@
 
       <section id="view-rosary" class="app-view rosary-view" aria-labelledby="rosaryTitle">
         <div class="rosary-hero">
-          <div><p class="eyebrow">Oración contemplativa · Tradición católica</p><h1 id="rosaryTitle">Santo Rosario Meditado</h1><p class="lead">Con María, contempla los momentos centrales de la vida de Jesús. Lee, medita y ora sin prisa.</p></div>
+          <div><p class="eyebrow">Oración contemplativa · Tradición católica</p><h1 id="rosaryTitle">Santo Rosario de la Virgen María</h1><p class="lead">Una guía completa para rezar con María, aunque sea tu primera vez. Sigue las oraciones una por una.</p></div>
           <div class="rosary-hero-mark" aria-hidden="true">✝</div>
         </div>
         <div class="rosary-layout">
@@ -188,6 +188,21 @@
               <div class="panel-heading"><div><span class="eyebrow">Misterios del día</span><h2 id="rosaryMysteryLabel">Misterios Gozosos</h2><p id="rosaryMysteryDescription" class="muted-copy"></p></div><span id="rosaryDayLabel" class="gold-chip"></span></div>
               <label class="rosary-select-label" for="rosaryMysterySelect">Selecciona el conjunto de misterios</label>
               <select id="rosaryMysterySelect" class="rosary-mystery-select"><option value="gozosos">Gozosos · lunes y sábado</option><option value="luminosos">Luminosos · jueves</option><option value="dolorosos">Dolorosos · martes y viernes</option><option value="gloriosos">Gloriosos · miércoles y domingo</option></select>
+            </article>
+<article class="content-card rosary-guided-card" aria-label="Rosario guiado paso a paso">
+              <span class="eyebrow">Rosario de la Virgen María · Guía para comenzar</span>
+              <h2>Reza conmigo, paso a paso</h2>
+              <p class="muted-copy">No necesitas saber las oraciones de memoria. Lee la oración completa y pulsa «Siguiente» cuando termines. Cada cuenta y cada misterio siguen el orden tradicional.</p>
+              <div class="rosary-guided-progress"><span id="guidedRosaryPosition">Inicio</span><span id="guidedRosaryMystery">Preparación</span></div>
+              <h3 id="guidedRosaryHeading">Señal de la Cruz</h3>
+              <p id="guidedRosaryHint" class="muted-copy"></p>
+              <p id="guidedRosaryText" class="rosary-guided-text" aria-live="polite"></p>
+              <div class="rosary-guided-actions">
+                <button id="guidedRosaryBack" class="secondary-button" type="button">← Anterior</button>
+                <button id="guidedRosarySpeak" class="secondary-button" type="button">▶ Escuchar oración</button>
+                <button id="guidedRosaryNext" class="primary-button" type="button">Siguiente →</button>
+              </div>
+              <button id="guidedRosaryRestart" class="rosary-restart" type="button">Volver al inicio del Rosario</button>
             </article>
             <article class="content-card rosary-meditation-card">
               <div class="rosary-meditation-top"><span id="rosaryMysteryNumber" class="gold-chip">Primer misterio</span><span id="rosaryProgressLabel" class="muted-copy">Decena 1 de 5</span></div>

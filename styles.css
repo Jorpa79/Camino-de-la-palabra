@@ -513,3 +513,14 @@ body.reading-mode .chapter-article { box-shadow:none; border:0; }
 
 .rosary-prayer-order{margin:0 0 1rem;padding:1rem 1.1rem;border-left:4px solid var(--gold,#c99a3b);border-radius:0 12px 12px 0;background:rgba(201,154,59,.10);color:var(--ink,#203b35);line-height:1.65}
 .rosary-prayer-buttons button{margin:.2rem}
+
+/* V2.8: el rosario guiado sustituye al catálogo separado de oraciones */
+.rosary-view .rosary-meditation-card,.rosary-view .rosary-prayers-card{display:none!important}
+.rosary-guided-card{display:flex;flex-direction:column;gap:14px}
+.rosary-guided-progress{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:#82622d;font-weight:700}
+.rosary-guided-card h3{font-size:clamp(1.35rem,3.5vw,1.8rem);margin:6px 0}
+.rosary-guided-text{white-space:pre-line;line-height:1.8;font-size:clamp(1.13rem,3.7vw,1.35rem);color:var(--ink,#183c34);background:#f3f7f3;border-radius:16px;padding:20px;min-height:135px}
+.rosary-guided-actions{display:flex;flex-wrap:wrap;gap:10px}
+.rosary-guided-actions button{flex:1 1 145px}
+.rosary-restart{background:transparent;border:0;text-decoration:underline;color:#55665e;padding:12px;cursor:pointer;align-self:flex-start}
+@media(max-width:600px){.rosary-guided-text{padding:16px}.rosary-guided-actions button{flex-basis:100%}}

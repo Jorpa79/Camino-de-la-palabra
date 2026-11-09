@@ -197,6 +197,7 @@
     $('#audioVoice').addEventListener('change', onAudioVoiceChange);
     $('#testGeminiVoicesButton').addEventListener('click', testGeminiVoicesFromUi);
     $('#rosaryMysterySelect').addEventListener('change', onRosaryMysteryChange);
+    setupGuidedRosary();
     $('#rosaryPrevMystery').addEventListener('click', () => moveRosaryMystery(-1));
     $('#rosaryCompleteDecade').addEventListener('click', completeRosaryDecade);
     $('#rosarySpeakButton').addEventListener('click', speakRosaryMeditation);
@@ -957,6 +958,88 @@
     const key = $('#rosaryMysterySelect').value || appState.settings.rosaryMysteryType || getRosaryTypeForToday();
     return data && data[key] ? {key, ...data[key]} : null;
   }
+  // V2.8: secuencia guiada de oraciones sin catálogo separado.
+  let guidedRosaryStep = 0;
+  let guidedRosaryAudio = null;
+  let guidedRosaryAudioUrl = null;
+  function guidedRosarySteps() {
+    const prayers = window.ROSARY_DATA.prayers;
+    const set = getRosarySet();
+    if (!set) return [];
+    const steps = [];
+    function add(title, text, hint, mystery) { steps.push({title, text, hint, mystery}); }
+    add('Señal de la Cruz',prayers.senal,'Haz la señal de la cruz con devoción.','Preparación');
+    add('Acto de contrición',prayers.contricion,'Pide perdón a Dios con sinceridad.','Preparación');
+    add('Ofrecimiento del Rosario',prayers.ofrecimiento,'Puedes presentar en silencio una intención personal.','Preparación');
+    add('Credo de los Apóstoles',prayers.credo,'En el crucifijo, profesamos nuestra fe.','Preparación');
+    add('Padre Nuestro',prayers.padre,'En la primera cuenta grande.','Preparación');
+    ['Por la fe','Por la esperanza','Por la caridad'].forEach((reason,i)=>add('Ave María '+(i+1)+' de 3',prayers.ave,reason+'. Reza el texto completo.','Preparación'));
+    add('Gloria',prayers.gloria,'Concluimos las oraciones iniciales.','Preparación');
+    set.items.forEach((item,i)=>{
+      const n=i+1, which='Misterio '+n+' de 5';
+      add('Anunciamos el '+['primer','segundo','tercer','cuarto','quinto'][i]+' misterio: '+item.title,
+          item.meditation+'\n\nCita bíblica: '+item.reference+'\nFruto del misterio: '+item.fruit,
+          'Lee y medita un momento. Después comienza la decena.',which);
+      add('Padre Nuestro · misterio '+n,prayers.padre,'Reza un Padre Nuestro en la cuenta grande.',which);
+      for(let bead=1;bead<=10;bead++) add('Ave María '+bead+' de 10',prayers.ave,
+          'Misterio '+n+'. Después de rezarla, pulsa «Siguiente».',which);
+      add('Gloria · misterio '+n,prayers.gloria,'Al terminar las diez Ave Marías.',which);
+      add('Oración de Fátima · misterio '+n,prayers.fatima,'Oración tradicional opcional después del Gloria.',which);
+    });
+    add('Salve a la Virgen María',prayers.salve,'Hemos meditado los cinco misterios.','Conclusión');
+    add('Oración final del Rosario',prayers.oracionFinal,'Oremos juntos para concluir.','Conclusión');
+    add('Señal de la Cruz',prayers.senal,'Has terminado el Santo Rosario. Amén.','Conclusión');
+    return steps;
+  }
+  function renderGuidedRosary() {
+    const steps=guidedRosarySteps(); if (!steps.length || !$('#guidedRosaryHeading')) return;
+    guidedRosaryStep=Math.max(0,Math.min(guidedRosaryStep,steps.length-1));
+    const step=steps[guidedRosaryStep];
+    $('#guidedRosaryPosition').textContent='Oración '+(guidedRosaryStep+1)+' de '+steps.length;
+    $('#guidedRosaryMystery').textContent=step.mystery;
+    $('#guidedRosaryHeading').textContent=step.title;
+    $('#guidedRosaryText').textContent=step.text.replace(/\\n/g,'\n');
+    $('#guidedRosaryHint').textContent=step.hint;
+    $('#guidedRosaryBack').disabled=guidedRosaryStep===0;
+    $('#guidedRosaryNext').disabled=guidedRosaryStep===steps.length-1;
+    $('#guidedRosaryNext').textContent=guidedRosaryStep===steps.length-2?'Terminar Rosario →':'Siguiente →';
+  }
+  function stopGuidedRosaryAudio() {
+    if(guidedRosaryAudio){guidedRosaryAudio.pause();guidedRosaryAudio=null;}
+    if(guidedRosaryAudioUrl){URL.revokeObjectURL(guidedRosaryAudioUrl);guidedRosaryAudioUrl=null;}
+    if(window.speechSynthesis) speechSynthesis.cancel();
+    if($('#guidedRosarySpeak')) {$('#guidedRosarySpeak').textContent='▶ Escuchar oración';$('#guidedRosarySpeak').disabled=false;}
+  }
+  async function speakGuidedRosary() {
+    if(guidedRosaryAudio || (window.speechSynthesis && speechSynthesis.speaking)){stopGuidedRosaryAudio();return;}
+    const step=guidedRosarySteps()[guidedRosaryStep];if(!step)return;
+    const button=$('#guidedRosarySpeak');button.disabled=true;button.textContent='Preparando voz…';
+    const provider=appState.settings.audioProvider || audioConfig.defaultProvider || 'device';
+    const providerReady=provider!=='device' && backendReady && Boolean(audioConfig.providers && audioConfig.providers[provider]);
+    try {
+      if(providerReady){
+        const result=await gasCall('generateSpeech',{text:step.text.replace(/\\n/g,' '),rate:Number($('#speechRate').value)||1,provider,voice:appState.settings.audioVoice||'female'});
+        if(!result.audioBase64)throw new Error('El servicio no devolvió audio.');
+        const bytes=Uint8Array.from(atob(result.audioBase64),c=>c.charCodeAt(0));
+        guidedRosaryAudioUrl=URL.createObjectURL(new Blob([bytes],{type:result.mimeType||'audio/wav'}));
+        guidedRosaryAudio=new Audio(guidedRosaryAudioUrl);
+        guidedRosaryAudio.onended=stopGuidedRosaryAudio;
+        guidedRosaryAudio.onerror=()=>{stopGuidedRosaryAudio();showToast('No se pudo reproducir el audio.');};
+        await guidedRosaryAudio.play();button.disabled=false;button.textContent='■ Detener oración';
+      } else if('speechSynthesis' in window){
+        const utterance=new SpeechSynthesisUtterance(step.text.replace(/\\n/g,' '));
+        utterance.lang='es-MX';utterance.rate=Number($('#speechRate').value)||1;
+        utterance.onend=stopGuidedRosaryAudio;
+        speechSynthesis.speak(utterance);button.disabled=false;button.textContent='■ Detener oración';
+      } else throw new Error('El navegador no admite reproducción de voz.');
+    } catch(error){stopGuidedRosaryAudio();showToast('No se pudo reproducir: '+error.message);}
+  }
+  function setupGuidedRosary() {
+    $('#guidedRosaryBack').addEventListener('click',()=>{stopGuidedRosaryAudio();guidedRosaryStep--;renderGuidedRosary();});
+    $('#guidedRosaryNext').addEventListener('click',()=>{stopGuidedRosaryAudio();guidedRosaryStep++;renderGuidedRosary();});
+    $('#guidedRosaryRestart').addEventListener('click',()=>{stopGuidedRosaryAudio();guidedRosaryStep=0;renderGuidedRosary();});
+    $('#guidedRosarySpeak').addEventListener('click',speakGuidedRosary);
+  }
   function renderRosary() {
     if (!$('#rosaryMysterySelect')) return;
     const preferred = appState.settings.rosaryMysteryType || getRosaryTypeForToday();
@@ -968,6 +1051,7 @@
     $('#rosaryDayLabel').textContent = set.days;
     $('#rosaryIntention').value = appState.settings.rosaryIntention || '';
     renderRosaryMystery();
+    renderGuidedRosary();
   }
   function renderRosaryMystery() {
     const set = getRosarySet();
@@ -989,6 +1073,8 @@
     appState.settings.rosaryMysteryType = event.target.value;
     rosaryMysteryIndex = 0;
     rosaryBeadProgress = new Set();
+    guidedRosaryStep = 0;
+    stopGuidedRosaryAudio();
     persistSetting('rosaryMysteryType', event.target.value);
     renderRosary();
   }
